@@ -12,6 +12,7 @@ public class Menu : MonoBehaviour
         Time.timeScale = 1f;
     }
 
+
     public void ExitGame()
     {
 #if UNITY_EDITOR
