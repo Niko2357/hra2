@@ -1,62 +1,96 @@
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
-using UnityEditor.SearchService;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
     public List<GameObject> selectableObjects = new List<GameObject>();
-    int score;
+    GameObject currentTarget;
+    GameObject oldTarget;
+    public int score;
+    float time;
+    float maxTime = 30f;
+    public TMP_Text targetText;
+    public Slider slider;
     public TMP_Text scoreText;
-    public TMP_Text text;
-    public Vector3 teleport;
+    public bool reloading;
+    public TMP_Text shooting;
+    livesScript livescript;
 
-    
     // Start is called before the first frame update
     void Start()
     {
-       LoadSelectableObjects();
-       teleport = new Vector3(5, 5, -5);
+        LoadSelectableObjects();
+        SelectNewTarget();
+        slider.maxValue = maxTime;
+        reloading = false;
+        livescript = FindAnyObjectByType<livesScript>();
     }
 
     // Update is called once per frame
     void Update()
     {
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-        RaycastHit hit;
-
-        if (Physics.Raycast(ray, out hit, 15f, 1 << 6))
+        time -= Time.deltaTime;
+        slider.value = time;
+        if(time <= 0)
         {
-            text.text = hit.collider.gameObject.name;
-            if (Input.GetMouseButtonDown(0))
-            {
-                hit.collider.gameObject.transform.position = teleport;
-            }
-            if (Input.GetMouseButtonDown(1))
-            {
-                Destroy(hit.collider.gameObject);
-                score += 10;
-                scoreText.text = "Score:" + score;
-            }
-        }
-        else if (Physics.Raycast(ray, out hit, 15f, 1<< 7))
-        {
-            text.text = hit.collider.gameObject.name;
+            SelectNewTarget();
         }
 
-        if (Input.GetKey(KeyCode.E))
+        /*if (Input.GetMouseButtonDown(0))
         {
-            SceneManager.LoadScene(0);
-            Cursor.lockState = CursorLockMode.None;
-        }
-        if(score == 30)
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            RaycastHit hit;
+
+            if (Physics.Raycast(ray, out hit, 15f, 1<<6))
+            {
+                GameObject clickedObject = hit.collider.gameObject;
+
+                if (clickedObject == currentTarget)
+                {
+                    float PointsAwarded = time;
+                    score += Mathf.FloorToInt(PointsAwarded);
+                    
+                    Debug.Log("Trefil si cíl, skóre je: " + score);
+                    scoreText.text = "Score: " + score;
+                    SelectNewTarget();
+                }
+            }
+        }*/
+        if (Input.GetMouseButtonDown(0))
         {
-            SceneManager.LoadScene(0);
-            Cursor.lockState= CursorLockMode.None;
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            RaycastHit hit;
+
+            //while (reloading == false)
+            //{
+                if (Physics.Raycast(ray, out hit, 15f, 1 << 6))
+                {
+                    GameObject clickedObject = hit.collider.gameObject;
+
+                    if (clickedObject.CompareTag("Enemy"))
+                    {
+                        float PointsAwarded = time;
+                        score += 10;
+
+                        Debug.Log("Trefil si enemaka, skóre je: " + score);
+                        scoreText.text = "Score: " + score;
+                        reloading = true;
+                        livescript.TakeDamage(5);
+                        shooting.text = "Reloading";
+                        slider.value = maxTime;
+                        if (slider.value == 0)
+                        {
+                            reloading = false;
+                            shooting.text = "Shoot";
+                        }
+                    }
+                }
+            //}
         }
+
     }
 
     void LoadSelectableObjects()
@@ -73,4 +107,26 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    void SelectNewTarget()
+    {
+
+        if (selectableObjects.Count >= 1)
+        {
+            int randomIndex;
+            do
+            {
+                randomIndex = Random.Range(0, selectableObjects.Count);
+            } while (selectableObjects[randomIndex] == oldTarget);
+
+            currentTarget = selectableObjects[randomIndex];
+            oldTarget = currentTarget;
+            time = maxTime;
+            targetText.text = "Target is: " + currentTarget.name;
+            Debug.Log("Target is: " + currentTarget.name);
+        }
+        else
+        {
+            Debug.Log("List musí mít alespoò 2 elementy");
+        }        
+    }
 }
